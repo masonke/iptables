@@ -1,0 +1,55 @@
+# Open connectivity for specific network devices and subnets
+iptables -A INPUT -s 10.72.16.23  -j ACCEPT
+iptables -A INPUT -s 10.74.16.0/24  -j ACCEPT
+
+# Allow the host to be a server for a specific application, in this case syslog
+iptables -A INPUT -p udp -m udp --dport 514 -j ACCEPT
+iptables -A INPUT -p tcp --dport 514 -j ACCEPT
+
+# Allow receiving  snmp and snmptraps
+iptables -A INPUT -p udp -m udp --dport 161 -j ACCEPT
+iptables -A INPUT -p udp -m udp --dport 162 -j ACCEPT
+
+#Prevent the use of empherial ports as the source port from a client
+iptables -A INPUT -p tcp -m tcp --sport 0:1023 ! --tcp-flags FIN,SYN,RST,ACK SYN -j ACCEPT
+
+# Add any other ports that this device will be a SERVER for, ie: 80, 443
+iptables -t raw -A PREROUTING -p tcp --dport 80 -j ACCEPT
+iptables -t raw -A PREROUTING -p tcp --dport 443 -j ACCEPT
+
+# Allow serving UDP port 53
+iptables -t raw -A PREROUTING -p udp --dport 53 -j ACCEPT
+
+# Allow a range of ports, in this case 1001 - 1005
+iptables -t raw -A PREROUTING -p udp --dport 1001:1005 -j ACCEPT
+
+#Allow connections to the SQL service, but only from 10/8
+iptables -A INPUT -p tcp -s 10.0.0.0/8 --dport 3306 -j ACCEPT
+
+# Enable ssh for devices in 10/8
+iptables -A INPUT -p tcp -s 10.0.0.0/8 --dport 22 -j ACCEPT
+
+# Enable ssh for devices in any network
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# Notes on traffic rate limiting. ref; http://blog.bodhizazen.net/linux/prevent-dos-with-iptables/
+# Unless connlimit-mask is used, these are global
+# Rate limiting example for SQL
+#
+# Limit icmp to a burst of 5 packets in a second, then apply the 1/s
+iptables -A INPUT -p icmp -m limit --limit  1/s --limit-burst 5 -j ACCEPT
+#    -p icmp  => Select icmp packets
+#    -m limit -- limit 1/s  => Maximum average matching rate in seconds
+#    --limit-burst 5 -j ACCEPT => Maximum initial number of packets to match. 
+
+# More complex example
+iptables -A INPUT -p tcp --dport 80 -m state --state NEW -m limit --limit 50/minute --limit-burst 200 -j ACCEPT
+#    -p tcp --dport 80  => Specifies traffic on port 80 
+#    -m state NEW => This rule applies to NEW connections.
+#    -m limit --limit 50/minute --limit-burst 200 -j ACCEPT => 200 new connection packets (SYNS) are allowed before the limit of 50 NEW connections (SYN Packets) per minute is applied.
+
+#Limit the number of connections to the mysql server from any one address to 100. This prevents a runaway client from killing the service.
+#First log, adding the prefix SQL-DROP: , then drop packets.
+iptables -t filter -A INPUT -p tcp --syn --dport 3306 -m connlimit --connlimit-above 100 --connlimit-mask 32 -j LOG --log-prefix "SQL-DROP: "
+iptables -t filter -A INPUT -p tcp --syn --dport 3306 -m connlimit --connlimit-above 100 --connlimit-mask 32 -j REJECT --reject-with tcp-reset
+#    --connlimit-mask => 32 matches a subnet mask of /32, or an individual IP address. It can be changed to match your needs.

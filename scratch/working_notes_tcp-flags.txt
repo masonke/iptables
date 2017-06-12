@@ -1,0 +1,40 @@
+Block Well-Known TCP Attacks
+Add the following rules, preferably in -t raw -A PREROUTING
+-p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
+-p tcp --tcp-flags SYN,RST SYN,RST -j DROP
+-p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,PSH,URG -j DROP
+-p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN -j DROP
+-p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
+-p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,PSH,ACK,URG -j DROP
+The attacks being blocked are, respectively:
+    SYN-FIN attack
+    SYN-RST attack
+    X-Mas attack
+    nmap FIN scan
+    NULLflags attack
+    ALLflags attack
+(feel free to edit the names of the attacks above)
+
+
+
+More flag combinations
+#!/bin/bash
+# -- UTF 8 --
+iptables="/sbin/iptables"
+CADENA="put INPUT, FORWARD or OUTPUT"
+IPWS="put destination IP"
+IFACE_Nro1="put input interface (example: wlan0 or eth0)"
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags SYN,FIN SYN,FIN -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags FIN,RST FIN,RST -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags SYN,FIN,PSH SYN,FIN,PSH -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags SYN,FIN,URG SYN,FIN,URG -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags SYN,FIN,RST SYN,FIN,RST -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags ALL SYN,FIN,RST,PSH -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags ALL ACK,RST,SYN,FIN -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags ALL FIN,URG,PSH -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,PSH -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags ALL ALL -j DROP
+$iptables -A $CADENA -i $IFACE_Nro1 -d $IPWS -p tcp --tcp-flags ALL NONE -j DROP
+shareimprove this answer

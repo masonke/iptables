@@ -1,0 +1,10 @@
+NEW -- meaning that the packet has started a new connection, or otherwise associated with a connection which has not seen packets in both directions, and
+ESTABLISHED -- meaning that the packet is associated with a connection which has seen packets in both directions,
+RELATED -- meaning that the packet is starting a new connection, but is associated with an existing connection, such as an FTP data transfer, or an ICMP error.
+
+
+
+ 
+iptables -A INPUT -i eth0 -p tcp --dport 22 -m state --state NEW -m recent --set --name SSH
+iptables -A INPUT -i eth0 -p tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 8 --rttl --name SSH -j DROP
+ 

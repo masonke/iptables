@@ -1,0 +1,21 @@
+
+#limit ping to 1 per second
+-A PACKET -p icmp -m icmp --icmp-type 8 -m limit --limit 1/sec -j ACCEPT
+
+
+# Limit the number of incoming tcp connections
+# Interface 0 incoming syn-flood protection
+
+iptables -N syn_flood
+iptables -A INPUT -p tcp --syn -j syn_flood
+iptables -A syn_flood -m limit --limit 1/s --limit-burst 3 -j RETURN
+iptables -A syn_flood -j DROP
+
+#Limiting the incoming icmp ping request:
+iptables -A INPUT -p icmp -m limit --limit  1/s --limit-burst 1 -j ACCEPT
+iptables -A INPUT -p icmp -m limit --limit 1/s --limit-burst 1 -j LOG --log-prefix PING-DROP:
+iptables -A INPUT -p icmp -j DROP
+iptables -A OUTPUT -p icmp -j ACCEPT
+
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
